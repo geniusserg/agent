@@ -25,3 +25,15 @@ add_executable(mcp_server
 target_include_directories(mcp_server PRIVATE include)
 
 target_link_libraries(mcp_server PRIVATE nlohmann_json::nlohmann_json)
+
+add_executable(mcp_web_ui
+    src/WebUiServer.cpp
+)
+
+target_include_directories(mcp_web_ui PRIVATE include)
+
+target_link_libraries(mcp_web_ui PRIVATE nlohmann_json::nlohmann_json)
+
+target_compile_definitions(mcp_web_ui
+    PRIVATE WEBUI_ASSETS_DIR="${CMAKE_SOURCE_DIR}/webui"
+)
