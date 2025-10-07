@@ -1,47 +1,43 @@
-package agent
+package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
-	"net/http/httptest"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-type Input struct {
-	Name string `json:"name" jsonschema:"the name of the person to greet"`
-}
-
-type Output struct {
-	Greeting string `json:"greeting" jsonschema:"the greeting to tell to the user"`
-}
-
-func SayHi(ctx context.Context, req *mcp.CallToolRequest, input Input) (
-	*mcp.CallToolResult,
-	Output,
-	error,
-) {
-	return nil, Output{Greeting: "Hi " + input.Name}, nil
+type Args struct{ 
+	Name string `json:"name" jsonschema:"Name to greet"`
 }
 
 func main() {
 	server := mcp.NewServer(&mcp.Implementation{Name: "greeter", Version: "v1.0.0"}, nil)
-	mcp.AddTool(server, &mcp.Tool{Name: "greet", Description: "say hi"}, SayHi)
+	mcp.AddTool(server, &mcp.Tool{Name: "greet", Description: "say hi"}, 
+	func(ctx context.Context, req *mcp.CallToolRequest, args Args) (*mcp.CallToolResult, any, error) {
+	return &mcp.CallToolResult{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: "Hi" + args.Name + "!"},
+		},
+	}, nil, nil
+  },)
 
-	handler := mcp.NewSSEHandler(func(*http.Request) *mcp.Server { return server }, nil)
-	httpServer := httptest.NewServer(handler)
-	defer httpServer.Close()
+	handler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
+		return server
+	}, &mcp.StreamableHTTPOptions{JSONResponse: true})
 
-	ctx := context.Background()
-	transport := &mcp.SSEClientTransport{Endpoint: httpServer.URL}
-	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "v1.0.0"}, nil)
-	cs, err := client.Connect(ctx, transport, nil)
-	if err != nil {
-		log.Fatal(err)
+	mux := http.NewServeMux()
+	mux.Handle("/mcp", handler)
+
+	srv := &http.Server{
+		Addr:    ":8080", // public port
+		Handler: mux,
 	}
-	defer cs.Close()
-	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
+
+	fmt.Println("Listening on http://0.0.0.0:8080/mcp")
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
