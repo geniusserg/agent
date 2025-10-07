@@ -1,31 +1,16 @@
-# syntax=docker/dockerfile:1.6
-
-FROM alpine:3.19 AS build
-
-RUN apk add --no-cache \
-    build-base \
-    cmake \
-    git
-
-WORKDIR /app
-
+FROM golang:1.22-alpine AS builder
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
-
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build build --target mcp_web_ui --config Release
+RUN CGO_ENABLED=0 go build -trimpath -o /out/mcpwebui ./cmd/mcpwebui
 
 FROM alpine:3.19
-
-RUN apk add --no-cache libstdc++
-
-WORKDIR /opt/mcp
-
-COPY --from=build /app/build/mcp_web_ui /usr/local/bin/mcp_web_ui
-COPY webui /opt/mcp/webui
-
-ENV WEBUI_ASSETS_DIR=/opt/mcp/webui \
-    WEBUI_PORT=8080
-
+RUN adduser -S -D -H mcp
+USER mcp
+WORKDIR /app
+COPY --from=builder /out/mcpwebui /usr/local/bin/mcpwebui
+COPY webui /app/webui
+ENV WEBUI_ASSETS_DIR=/app/webui
 EXPOSE 8080
-
-CMD ["mcp_web_ui"]
+ENTRYPOINT ["/usr/local/bin/mcpwebui"]
