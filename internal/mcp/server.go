@@ -82,8 +82,7 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) handleRequest(msg *rpcMessage) error {
-	switch msg.Method {
-	case "initialize":
+	if msg.Method == "initialize" && !s.initialized {
 		s.initialized = true
 		capabilities := map[string]any{
 			"capabilities": s.makeCapabilities(),
@@ -93,38 +92,28 @@ func (s *Server) handleRequest(msg *rpcMessage) error {
 			},
 		}
 		return s.respond(msg.ID, capabilities)
-	case "ping":
-		if !s.initialized {
-			return s.respondWithError(msg.ID, invalidRequest, "Server has not been initialized")
-		}
-		return s.respond(msg.ID, map[string]string{"result": "pong"})
-	case "tools/list":
-		if !s.initialized {
-			return s.respondWithError(msg.ID, invalidRequest, "Server has not been initialized")
-		}
-		return s.respond(msg.ID, s.listTools())
-	case "tools/call":
-		if !s.initialized {
-			return s.respondWithError(msg.ID, invalidRequest, "Server has not been initialized")
-		}
-		if len(msg.Params) == 0 {
-			return s.respondWithError(msg.ID, invalidRequest, "Missing params for tools/call")
-		}
-		result, err := s.callTool(msg.Params)
-		if err != nil {
-			return s.respondWithError(msg.ID, internalError, err.Error())
-		}
-		return s.respond(msg.ID, result)
-	case "shutdown":
-		if !s.initialized {
-			return s.respondWithError(msg.ID, invalidRequest, "Server has not been initialized")
-		}
-		return s.respond(msg.ID, map[string]any{})
-	default:
-		if !s.initialized {
-			return s.respondWithError(msg.ID, invalidRequest, "Server has not been initialized")
-		}
-		return s.respondWithError(msg.ID, methodNotFound, fmt.Sprintf("Method not implemented: %s", msg.Method))
+	}
+	if !s.initialized {
+		return s.respondWithError(msg.ID, invalidRequest, "Server has not been initialized")
+	}
+	switch msg.Method {
+		case "ping":
+			return s.respond(msg.ID, map[string]string{"result": "pong"})
+		case "tools/list":
+			return s.respond(msg.ID, s.listTools())
+		case "tools/call":
+			if len(msg.Params) == 0 {
+				return s.respondWithError(msg.ID, invalidRequest, "Missing params for tools/call")
+			}
+			result, err := s.callTool(msg.Params)
+			if err != nil {
+				return s.respondWithError(msg.ID, internalError, err.Error())
+			}
+			return s.respond(msg.ID, result)
+		case "shutdown":
+			return s.respond(msg.ID, map[string]any{})
+		default:
+			return s.respondWithError(msg.ID, methodNotFound, fmt.Sprintf("Method not implemented: %s", msg.Method))
 	}
 }
 
