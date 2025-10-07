@@ -74,3 +74,17 @@ go fmt ./...
 ```
 
 The CI workflow enforces formatting, vetting, and unit tests to keep the codebase consistent and reliable.
+
+## Deployment Pipeline
+
+A GitHub Actions workflow in `.github/workflows/deploy.yml` handles automated deployment of the MCP server once changes reach the `main` branch. The pipeline performs formatting checks, runs the Go test suite, and, on success, builds the `mcpserver` binary and ships it to the remote host before restarting the service.
+
+Before enabling deployments, create the following repository secrets so the workflow can authenticate with your target server:
+
+| Secret | Description |
+| --- | --- |
+| `MCP_SERVER_HOST` | Public hostname or IP address of the deployment target (for example `64.188.97.146`). |
+| `MCP_SERVER_USER` | SSH user with permission to deploy the service (for example `codex`). |
+| `MCP_SERVER_PASSWORD` | Password for the SSH user. |
+
+Once the secrets are configured, pushes to `main` or manual workflow dispatches will upload the freshly built binary to `/tmp/mcpserver` on the target, install it to `/usr/local/bin`, and restart the associated `systemd` service.
