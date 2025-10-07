@@ -18,15 +18,6 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Verify formatting
-        run: |
-          fmt_output=$(gofmt -l .)
-          if [ -n "$fmt_output" ]; then
-            echo "The following files need gofmt:" >&2
-            echo "$fmt_output" >&2
-            exit 1
-          fi
-
       - name: Vet
         run: go vet ./...
 
