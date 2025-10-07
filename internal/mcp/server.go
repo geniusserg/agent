@@ -202,7 +202,7 @@ func (s *Server) callTool(params json.RawMessage) (map[string]any, error) {
 		return nil, err
 	}
 	if request.Name != "echo" {
-		return nil, fmt.Errorf("Unknown tool: %s", request.Name)
+		return nil, fmt.Errorf("unknown tool: %s", request.Name)
 	}
 	text, _ := request.Arguments["text"].(string)
 	return map[string]any{

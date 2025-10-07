@@ -35,7 +35,7 @@ jobs:
         with:
           go-version: '1.22'
       - name: Build MCP server binary
-        run: go build -o mcpserver ./cmd/mcpserver
+        run: CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o mcpserver ./cmd/mcpserver
       - name: Upload binary to server
         uses: appleboy/scp-action@v0.1.7
         with:
